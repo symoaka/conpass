@@ -1,0 +1,4 @@
+discord.py>=2.3.0
+python-dotenv>=1.0.0
+streamlit>=1.57.0
+truststore>=0.8.0

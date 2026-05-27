@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.4 - GitHub README Docs
+- Expanded `README.md` into a complete GitHub setup and usage guide.
+- Documented how to launch the bot and dashboard.
+- Documented commands, dashboard tabs, runtime data, and versioning.
+- Fixed the launcher message to point at `.env.example`.
+
 ## v0.1.3 - GitHub Repo Setup
 - Added `.gitignore` to keep secrets, virtualenvs, logs, and runtime databases out of git.
 - Added `.env.example` for safe configuration sharing.

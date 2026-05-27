@@ -16,7 +16,7 @@ pip install -r requirements.txt > /dev/null 2>&1
 
 # 2. Check for .env file
 if [ ! -f ".env" ]; then
-    echo "❌ Error: .env file not found! Please rename .env.template to .env and add your DISCORD_TOKEN."
+    echo "❌ Error: .env file not found! Please copy .env.example to .env and add your DISCORD_TOKEN."
     exit 1
 fi
 

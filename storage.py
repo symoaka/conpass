@@ -94,6 +94,12 @@ def init_db():
                 last_used_at TEXT
             );
 
+            CREATE TABLE IF NOT EXISTS guilds (
+                guild_id TEXT PRIMARY KEY,
+                guild_name TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS guild_level_settings (
                 guild_id TEXT PRIMARY KEY,
                 leveling_enabled INTEGER NOT NULL DEFAULT 1,
@@ -482,10 +488,60 @@ def update_guild_level_settings(guild_id, **updates):
     return get_guild_level_settings(guild_id)
 
 
+def upsert_guild(guild_id, guild_name):
+    clean_name = str(guild_name).strip()
+    if not clean_name:
+        return
+
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO guilds (guild_id, guild_name, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET
+                guild_name = excluded.guild_name,
+                updated_at = excluded.updated_at
+            """,
+            (str(guild_id), clean_name, utc_now()),
+        )
+
+
+def get_guild_name(guild_id):
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT guild_name FROM guilds WHERE guild_id = ?",
+            (str(guild_id),),
+        ).fetchone()
+    return row["guild_name"] if row else None
+
+
+def get_known_guilds():
+    guild_ids = get_known_guild_ids()
+    if not guild_ids:
+        return []
+
+    with connect() as conn:
+        name_rows = conn.execute(
+            f"""
+            SELECT guild_id, guild_name
+            FROM guilds
+            WHERE guild_id IN ({",".join("?" for _ in guild_ids)})
+            """,
+            guild_ids,
+        ).fetchall()
+    names = {row["guild_id"]: row["guild_name"] for row in name_rows}
+    return [
+        {"guild_id": guild_id, "guild_name": names.get(guild_id)}
+        for guild_id in guild_ids
+    ]
+
+
 def get_known_guild_ids():
     with connect() as conn:
         rows = conn.execute(
             """
+            SELECT guild_id FROM guilds
+            UNION
             SELECT guild_id FROM guild_level_settings
             UNION
             SELECT guild_id FROM user_levels

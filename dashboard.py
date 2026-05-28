@@ -1,7 +1,12 @@
 import html
+import json
+import os
+import urllib.error
+import urllib.request
 from datetime import datetime
 
 import streamlit as st
+from dotenv import load_dotenv
 
 from storage import (
     ANNOUNCEMENT_MODES,
@@ -13,17 +18,21 @@ from storage import (
     get_faq_revision,
     get_faqs,
     get_guild_level_settings,
-    get_known_guild_ids,
+    get_guild_name,
+    get_known_guilds,
     get_leaderboard,
     get_level_rewards,
     init_db,
     level_progress,
     migrate_json_files_if_needed,
     update_guild_level_settings,
+    upsert_guild,
     upsert_faq,
     upsert_level_reward,
 )
 from version import APP_RELEASE_NOTES, APP_RELEASE_TITLE, APP_VERSION
+
+load_dotenv()
 
 
 GENERAL_COMMANDS = ["help", "insights", "version"]
@@ -52,6 +61,44 @@ def format_last_used(value):
     except ValueError:
         return value
     return parsed.strftime("%Y-%m-%d %H:%M UTC")
+
+
+def fetch_guild_name_from_discord(guild_id):
+    token = os.getenv("DISCORD_TOKEN", "").strip()
+    if not token or not guild_id:
+        return None
+
+    request = urllib.request.Request(
+        f"https://discord.com/api/v10/guilds/{guild_id}",
+        headers={
+            "Authorization": f"Bot {token}",
+            "User-Agent": "ConPass Dashboard",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError):
+        return None
+
+    guild_name = data.get("name")
+    if guild_name:
+        upsert_guild(guild_id, guild_name)
+    return guild_name
+
+
+def resolve_guild_name(guild_id):
+    if not guild_id or not str(guild_id).isdigit():
+        return None
+    return get_guild_name(guild_id) or fetch_guild_name_from_discord(guild_id)
+
+
+def format_guild_option(guild):
+    guild_id = guild["guild_id"]
+    guild_name = guild.get("guild_name")
+    if guild_name:
+        return f"{guild_name} ({guild_id})"
+    return guild_id
 
 
 def categorize_command(command_name, faqs):
@@ -177,16 +224,24 @@ def render_leaderboard(guild_id):
 
     display_rows = []
     settings_cache = {}
+    guild_name_cache = {}
     for index, row in enumerate(rows, start=1):
         row_guild_id = row["guild_id"]
         if row_guild_id not in settings_cache:
             settings_cache[row_guild_id] = get_guild_level_settings(row_guild_id)
+        if row_guild_id not in guild_name_cache:
+            guild_name_cache[row_guild_id] = resolve_guild_name(row_guild_id)
         progress = level_progress(row["xp"], settings_cache[row_guild_id])
+        guild_label = (
+            f"{guild_name_cache[row_guild_id]} ({row_guild_id})"
+            if guild_name_cache[row_guild_id]
+            else row_guild_id
+        )
         display_rows.append(
             {
                 "Rank": index,
                 "Member": row["username"],
-                "Guild ID": row_guild_id,
+                "Guild": guild_label,
                 "Level": progress["level"],
                 "XP": row["xp"],
                 "Progress": f"{progress['xp_into_level']} / {progress['xp_needed']}",
@@ -353,30 +408,53 @@ def render_reward_settings(guild_id):
 
 def render_levels():
     st.subheader("Member Levels")
-    known_guild_ids = get_known_guild_ids()
+    known_guilds = get_known_guilds()
+    known_guild_ids = [guild["guild_id"] for guild in known_guilds]
+    known_guild_by_id = {guild["guild_id"]: guild for guild in known_guilds}
     current_guild_id = st.session_state.get("level_guild_id", "")
 
     with st.form("guild_loader_form"):
         selected = ""
         if known_guild_ids:
-            options = ["", *known_guild_ids]
-            selected_index = options.index(current_guild_id) if current_guild_id in options else 0
+            options = known_guild_ids
+            selected_index = (
+                options.index(current_guild_id)
+                if current_guild_id in options
+                else 0
+            )
             selected = st.selectbox(
                 "Known Guild",
                 options=options,
                 index=selected_index,
-                format_func=lambda value: "All guilds" if not value else value,
+                format_func=lambda value: (
+                    format_guild_option(known_guild_by_id.get(value, {"guild_id": value}))
+                ),
             )
         manual_default = current_guild_id if current_guild_id and current_guild_id not in known_guild_ids else selected
-        manual_guild_id = st.text_input("Guild ID", value=manual_default)
+        input_col, name_col = st.columns([2, 1])
+        manual_guild_id = input_col.text_input("Guild ID", value=manual_default)
+        preview_id = manual_guild_id.strip() or selected
+        preview_name = get_guild_name(preview_id) if preview_id else None
+        name_col.text_input(
+            "Server Name",
+            value=preview_name or "Unknown until loaded",
+            disabled=True,
+        )
         submitted = st.form_submit_button("Load Guild")
         if submitted:
-            st.session_state["level_guild_id"] = manual_guild_id.strip() or selected
+            loaded_guild_id = manual_guild_id.strip() or selected
+            if loaded_guild_id.isdigit():
+                resolve_guild_name(loaded_guild_id)
+            st.session_state["level_guild_id"] = loaded_guild_id
             st.rerun()
 
     guild_id = st.session_state.get("level_guild_id", "").strip()
     if guild_id:
-        st.caption(f"Loaded guild: `{guild_id}`")
+        guild_name = resolve_guild_name(guild_id)
+        if guild_name:
+            st.caption(f"Loaded guild: `{guild_id}` · Server: **{guild_name}**")
+        else:
+            st.caption(f"Loaded guild: `{guild_id}` · Server: **Unknown**")
 
     render_leaderboard(guild_id)
 

@@ -41,6 +41,7 @@ from storage import (
     record_command_usage,
     record_message_xp,
     update_guild_level_settings,
+    upsert_guild,
     upsert_level_reward,
 )
 from version import APP_RELEASE_NOTES, APP_RELEASE_TITLE, APP_VERSION
@@ -131,11 +132,16 @@ class ConPassBot(commands.Bot):
         if not self.ready_sync_done:
             await self.sync_ready_guild_commands()
             self.ready_sync_done = True
+        self.remember_guild_names()
         print(f"Logged in as {self.user} (ID: {self.user.id})", flush=True)
         print(
             f"Presence: {PRESENCE_STATUS} / {PRESENCE_TYPE} {PRESENCE_TEXT}",
             flush=True,
         )
+
+    def remember_guild_names(self):
+        for guild in self.guilds:
+            upsert_guild(guild.id, guild.name)
 
     async def sync_commands_to_guild(self, guild):
         guild_object = discord.Object(id=guild.id)

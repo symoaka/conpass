@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.6 - Guild Names in Leveling
+- Stored connected Discord guild names in SQLite when the bot starts.
+- Added dashboard guild-name lookup beside the Guild ID field.
+- Added Discord API fallback lookup for manually entered guild IDs.
+- Updated leaderboard guild display to show server names when known.
+
 ## v0.1.5 - Insights and Live Command Sync
 - Split dashboard Insights into FAQ, Leveling, Level Admin, and General command sections.
 - Added a usage-by-category summary table.

@@ -5,7 +5,7 @@ It is built for communities that want quick slash-command answers, usage
 analytics, configurable member XP, leaderboards, level-up announcements, and role
 rewards from one lightweight Python project.
 
-Current version: **v0.1.5**
+Current version: **v0.1.6**
 
 ## What It Does
 
@@ -151,6 +151,7 @@ Admin commands require Discord's **Manage Server** permission.
 - **Leveling**: view leaderboards and configure guild leveling settings.
 
 For dashboard leveling settings, enter a Discord guild ID and click **Load Guild**.
+When the bot can resolve the server, the dashboard shows the server name beside the guild ID.
 Role and channel fields use Discord numeric IDs in the dashboard; Discord slash commands provide nicer native role/channel pickers.
 
 ## Data And Safety

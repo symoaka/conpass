@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.5 - Insights and Live Command Sync
+- Split dashboard Insights into FAQ, Leveling, Level Admin, and General command sections.
+- Added a usage-by-category summary table.
+- Added fast guild command syncing so dashboard-added FAQ commands appear faster in Discord.
+- Added `DISCORD_SYNC_MODE` for controlling command sync behavior.
+
 ## v0.1.4 - GitHub README Docs
 - Expanded `README.md` into a complete GitHub setup and usage guide.
 - Documented how to launch the bot and dashboard.

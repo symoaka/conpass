@@ -48,6 +48,7 @@ from version import APP_RELEASE_NOTES, APP_RELEASE_TITLE, APP_VERSION
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 SYNC_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
+SYNC_MODE = os.getenv("DISCORD_SYNC_MODE", "guild").strip().lower()
 PRESENCE_TYPE = os.getenv("DISCORD_PRESENCE_TYPE", "watching").strip().lower()
 PRESENCE_TEXT = os.getenv(
     "DISCORD_PRESENCE_TEXT",
@@ -112,6 +113,7 @@ class ConPassBot(commands.Bot):
             if SYNC_GUILD_ID and SYNC_GUILD_ID.isdigit()
             else None
         )
+        self.ready_sync_done = False
 
     async def setup_hook(self):
         init_db()
@@ -126,21 +128,43 @@ class ConPassBot(commands.Bot):
             status=build_presence_status(),
             activity=build_presence_activity(),
         )
+        if not self.ready_sync_done:
+            await self.sync_ready_guild_commands()
+            self.ready_sync_done = True
         print(f"Logged in as {self.user} (ID: {self.user.id})", flush=True)
         print(
             f"Presence: {PRESENCE_STATUS} / {PRESENCE_TYPE} {PRESENCE_TEXT}",
             flush=True,
         )
 
+    async def sync_commands_to_guild(self, guild):
+        guild_object = discord.Object(id=guild.id)
+        self.tree.clear_commands(guild=guild_object)
+        self.tree.copy_global_to(guild=guild_object)
+        synced = await self.tree.sync(guild=guild_object)
+        guild_label = getattr(guild, "name", None) or guild.id
+        print(f"Synced {len(synced)} commands to guild {guild_label}.", flush=True)
+
+    async def sync_ready_guild_commands(self):
+        if self.sync_guild:
+            await self.sync_commands_to_guild(self.sync_guild)
+            return
+
+        if SYNC_MODE in {"guild", "guilds", "all"}:
+            for guild in self.guilds:
+                await self.sync_commands_to_guild(guild)
+
     async def sync_command_tree(self):
         if self.sync_guild:
-            self.tree.clear_commands(guild=self.sync_guild)
-            self.tree.copy_global_to(guild=self.sync_guild)
-            synced = await self.tree.sync(guild=self.sync_guild)
-            print(f"Synced {len(synced)} commands to guild {self.sync_guild.id}.", flush=True)
-        else:
-            synced = await self.tree.sync()
-            print(f"Synced {len(synced)} global commands.", flush=True)
+            await self.sync_commands_to_guild(self.sync_guild)
+            return
+
+        synced = await self.tree.sync()
+        print(f"Synced {len(synced)} global commands.", flush=True)
+
+        if SYNC_MODE in {"guild", "guilds", "all"}:
+            for guild in self.guilds:
+                await self.sync_commands_to_guild(guild)
 
     async def refresh_faq_commands(self, *, sync=False):
         faqs = get_faqs()

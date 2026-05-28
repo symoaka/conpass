@@ -5,7 +5,7 @@ It is built for communities that want quick slash-command answers, usage
 analytics, configurable member XP, leaderboards, level-up announcements, and role
 rewards from one lightweight Python project.
 
-Current version: **v0.1.4**
+Current version: **v0.1.5**
 
 ## What It Does
 
@@ -61,12 +61,15 @@ cp .env.example .env
 ```env
 DISCORD_TOKEN=your_discord_bot_token_here
 DISCORD_GUILD_ID=
+DISCORD_SYNC_MODE=guild
 DISCORD_PRESENCE_TYPE=watching
 DISCORD_PRESENCE_TEXT=/help | ConPass
 DISCORD_STATUS=online
 ```
 
 `DISCORD_GUILD_ID` is optional. If set, slash commands sync faster to that one test server. If empty, commands sync globally and may take longer to appear.
+
+`DISCORD_SYNC_MODE=guild` also syncs commands directly into connected servers, which makes FAQ commands added through the dashboard appear much faster than global Discord command sync. Set it to `global` if you only want global command sync.
 
 ## How To Open Everything
 
@@ -144,6 +147,7 @@ Admin commands require Discord's **Manage Server** permission.
 - **FAQs**: view and delete FAQ commands.
 - **Add or Update**: create or edit FAQ answers.
 - **Insights**: view command usage stats.
+- **Insights** also separates command usage into FAQ, Leveling, Level Admin, and General sections.
 - **Leveling**: view leaderboards and configure guild leveling settings.
 
 For dashboard leveling settings, enter a Discord guild ID and click **Load Guild**.

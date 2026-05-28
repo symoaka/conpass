@@ -26,13 +26,9 @@ from storage import (
 from version import APP_RELEASE_NOTES, APP_RELEASE_TITLE, APP_VERSION
 
 
-BUILT_IN_COMMANDS = [
-    "help",
-    "insights",
-    "rank",
-    "level",
-    "leaderboard",
-    "version",
+GENERAL_COMMANDS = ["help", "insights", "version"]
+LEVEL_COMMANDS = ["rank", "level", "leaderboard"]
+LEVEL_CONFIG_COMMANDS = [
     "levelconfig_status",
     "levelconfig_toggle",
     "levelconfig_xp",
@@ -45,6 +41,7 @@ BUILT_IN_COMMANDS = [
     "levelconfig_reward_remove",
     "levelconfig_reward_list",
 ]
+BUILT_IN_COMMANDS = [*GENERAL_COMMANDS, *LEVEL_COMMANDS, *LEVEL_CONFIG_COMMANDS]
 
 
 def format_last_used(value):
@@ -55,6 +52,18 @@ def format_last_used(value):
     except ValueError:
         return value
     return parsed.strftime("%Y-%m-%d %H:%M UTC")
+
+
+def categorize_command(command_name, faqs):
+    if command_name in faqs:
+        return "FAQ"
+    if command_name in LEVEL_COMMANDS:
+        return "Leveling"
+    if command_name in LEVEL_CONFIG_COMMANDS:
+        return "Level Admin"
+    if command_name in GENERAL_COMMANDS:
+        return "General"
+    return "Deleted or Unknown"
 
 
 def build_usage_rows(faqs, command_usage):
@@ -69,6 +78,7 @@ def build_usage_rows(faqs, command_usage):
         rows.append(
             {
                 "Command": f"/{command_name}",
+                "Category": categorize_command(command_name, faqs),
                 "Uses": int(command_stats.get("count", 0) or 0),
                 "Last Used": format_last_used(command_stats.get("last_used_at")),
                 "Status": status,
@@ -77,6 +87,18 @@ def build_usage_rows(faqs, command_usage):
         )
 
     return sorted(rows, key=lambda row: (row["Uses"], row["_last_used_at"]), reverse=True)
+
+
+def render_usage_table(rows, empty_message):
+    if not rows:
+        st.info(empty_message)
+        return
+
+    display_rows = [
+        {key: value for key, value in row.items() if not key.startswith("_")}
+        for row in rows
+    ]
+    st.dataframe(display_rows, width="stretch", hide_index=True)
 
 
 def render_insights(faq_snapshot):
@@ -94,20 +116,47 @@ def render_insights(faq_snapshot):
     metric_cols[2].metric("Most Used", top_row["Command"] if top_row else "None")
     metric_cols[3].metric("Last Used", recent_row["Command"] if recent_row else "None")
 
-    if used_rows:
-        st.subheader("Top Commands")
-        max_uses = max(row["Uses"] for row in used_rows)
-        for row in used_rows[:5]:
-            st.progress(row["Uses"] / max_uses, text=f"{row['Command']} - {row['Uses']} uses")
-    else:
-        st.info("No command usage recorded yet.")
+    category_rows = []
+    for category in ["FAQ", "Leveling", "Level Admin", "General", "Deleted or Unknown"]:
+        category_commands = [row for row in usage_rows if row["Category"] == category]
+        if category_commands:
+            category_rows.append(
+                {
+                    "Category": category,
+                    "Commands": len(category_commands),
+                    "Uses": sum(row["Uses"] for row in category_commands),
+                }
+            )
 
-    display_rows = [
-        {key: value for key, value in row.items() if not key.startswith("_")}
-        for row in usage_rows
-    ]
-    st.subheader("Usage Table")
-    st.dataframe(display_rows, width="stretch", hide_index=True)
+    if category_rows:
+        st.subheader("Usage by Category")
+        st.dataframe(category_rows, width="stretch", hide_index=True)
+
+    all_tab, faq_tab, leveling_tab, admin_tab, general_tab = st.tabs(
+        ["All", "FAQs", "Leveling", "Level Admin", "General"]
+    )
+    with all_tab:
+        render_usage_table(usage_rows, "No command usage recorded yet.")
+    with faq_tab:
+        render_usage_table(
+            [row for row in usage_rows if row["Category"] == "FAQ"],
+            "No FAQ command usage recorded yet.",
+        )
+    with leveling_tab:
+        render_usage_table(
+            [row for row in usage_rows if row["Category"] == "Leveling"],
+            "No leveling command usage recorded yet.",
+        )
+    with admin_tab:
+        render_usage_table(
+            [row for row in usage_rows if row["Category"] == "Level Admin"],
+            "No level admin command usage recorded yet.",
+        )
+    with general_tab:
+        render_usage_table(
+            [row for row in usage_rows if row["Category"] == "General"],
+            "No general command usage recorded yet.",
+        )
 
 
 def render_leaderboard(guild_id):

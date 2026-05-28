@@ -1,3 +1,3 @@
-APP_VERSION = "0.1.4"
-APP_RELEASE_TITLE = "GitHub README docs"
-APP_RELEASE_NOTES = "Adds a full GitHub README with setup, launch, command, dashboard, and safety guidance."
+APP_VERSION = "0.1.5"
+APP_RELEASE_TITLE = "Insights and live command sync"
+APP_RELEASE_NOTES = "Separates insight categories and adds faster guild command syncing for dashboard FAQ updates."

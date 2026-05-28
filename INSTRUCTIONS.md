@@ -23,10 +23,12 @@ You can customize the Discord bot presence from your `.env` file:
 DISCORD_PRESENCE_TYPE=watching
 DISCORD_PRESENCE_TEXT=/help | ConPass
 DISCORD_STATUS=online
+DISCORD_SYNC_MODE=guild
 ```
 
 Supported presence types are `playing`, `watching`, `listening`, and `competing`.
 Supported statuses are `online`, `idle`, `dnd`, `do_not_disturb`, and `invisible`.
+Use `DISCORD_SYNC_MODE=guild` for faster dashboard-added FAQ commands in servers, or `DISCORD_SYNC_MODE=global` for global-only command sync.
 
 ---
 

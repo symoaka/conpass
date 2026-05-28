@@ -5,7 +5,7 @@ It is built for communities that want quick slash-command answers, usage
 analytics, configurable member XP, leaderboards, level-up announcements, and role
 rewards from one lightweight Python project.
 
-Current version: **v0.1.6**
+Current version: **v0.1.7**
 
 ## What It Does
 
@@ -23,7 +23,6 @@ Current version: **v0.1.6**
 - `dashboard.py`: Streamlit admin dashboard.
 - `storage.py`: SQLite tables, migrations, settings, XP math, FAQ and stats helpers.
 - `version.py`: Current app version and release text.
-- `faq.json`: Starter FAQ data that can be imported into SQLite.
 - `.env.example`: Safe example config. Copy this to `.env`.
 - `start.sh`: One-command launcher for the dashboard and bot.
 
@@ -163,6 +162,7 @@ Ignored local files include:
 - `.env`
 - `.venv/`
 - `conpass.sqlite3`
+- old JSON runtime files
 - logs
 - runtime command stats
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.7 - Remove Legacy JSON Files
+- Removed the old tracked `faq.json` seed file.
+- Ignored legacy JSON runtime files so SQLite remains the source of truth.
+- Updated README project file and data-safety notes.
+
 ## v0.1.6 - Guild Names in Leveling
 - Stored connected Discord guild names in SQLite when the bot starts.
 - Added dashboard guild-name lookup beside the Guild ID field.
